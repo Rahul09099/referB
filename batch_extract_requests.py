@@ -1,10 +1,16 @@
 """
-Fast Batch Referral Code Extractor for KaamCash (Pure Requests Edition)
-----------------------------------------------------------------------
+Fast Batch Referral Link & Signup Code Extractor for KaamCash
+--------------------------------------------------------------
 Uses direct HTTP API requests and pure Python response decoding.
-Appends ONLY the referral code (e.g., `4dAMXOn5`) to each line in `accounts.txt`.
+Appends BOTH the full share link AND the auto-filled signup referral code 
+to each line in your accounts text file.
 
-Format output per line: `email:password:referral_code`
+Output Format per line: `email:password:referral_link:signup_code`
+Example:
+  user@gmail.com:pass123:https://kaamcash.icks.top/pasia/4dAMXOn5:4dAMXO
+
+Usage:
+    python batch_extract_requests.py --file accounts.txt
 """
 
 import os
@@ -18,6 +24,7 @@ import requests
 sys.stdout.reconfigure(encoding='utf-8')
 
 API_URL = "https://kaamcash.icks.top/api/init/98j"
+BASE_INVITE_URL = "https://kaamcash.icks.top/pasia/"
 
 def h1(e: str) -> bytes:
     """Decodes base64url string into bytes."""
@@ -55,8 +62,8 @@ def decode_skm_response(encoded_str: str, key_seed: int = 9) -> str:
         print(f"  [!] Decode Error: {err}")
         return ""
 
-def get_referral_code(email: str, password: str) -> str:
-    """Authenticates account via HTTP API and returns the referral code."""
+def get_referral_details(email: str, password: str) -> tuple:
+    """Authenticates account via HTTP API and returns (referral_link, raw_signup_code)."""
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json",
@@ -80,11 +87,11 @@ def get_referral_code(email: str, password: str) -> str:
         
         if res.status_code != 200:
             print(f"  [-] Login failed (HTTP {res.status_code}): {res.text}")
-            return "LOGIN_FAILED"
+            return "LOGIN_FAILED", "LOGIN_FAILED"
 
         decoded_text = decode_skm_response(res.text, key_seed=9)
         if not decoded_text:
-            return "DECODE_FAILED"
+            return "DECODE_FAILED", "DECODE_FAILED"
 
         data = json.loads(decoded_text)
         user_info = data.get("user", {})
@@ -94,20 +101,21 @@ def get_referral_code(email: str, password: str) -> str:
         
         if ref_code:
             full_code = f"{ref_code}{public_suffix}"
-            return full_code
+            link = f"{BASE_INVITE_URL}{full_code}"
+            # ref_code is the exact raw code filled in the signup form (e.g. 4dAMXO)
+            return link, ref_code
         else:
-            return "NO_REF_CODE"
+            return "NO_REF_CODE", "NO_REF_CODE"
 
     except Exception as e:
         print(f"  [!] Request Error: {e}")
-        return f"ERROR_{type(e).__name__}"
+        return f"ERROR_{type(e).__name__}", f"ERROR_{type(e).__name__}"
 
 def process_file(file_path: str, output_path: str = None, force: bool = False):
     if not os.path.exists(file_path):
         print(f"[-] File not found: {file_path}")
         return
 
-    # Use input file as output file if not specified
     target_output = output_path if output_path else file_path
 
     with open(file_path, "r", encoding="utf-8") as f:
@@ -118,9 +126,9 @@ def process_file(file_path: str, output_path: str = None, force: bool = False):
     for line in lines:
         parts = line.split(":")
         
-        # If line already has email:password:referral_code and not forcing re-fetch, skip
-        if not force and len(parts) >= 3 and parts[2].strip() and not parts[2].startswith("ERROR"):
-            print(f"[*] Skipping {parts[0]} (already processed: {parts[2]})")
+        # If line already has email:password:link:code and not forcing re-fetch, skip
+        if not force and len(parts) >= 4 and parts[2].startswith("http"):
+            print(f"[*] Skipping {parts[0]} (already processed)")
             updated_lines.append(line)
             continue
 
@@ -133,10 +141,11 @@ def process_file(file_path: str, output_path: str = None, force: bool = False):
         password = parts[1].strip()
 
         print(f"[*] Processing account: {email}")
-        invite_code = get_referral_code(email, password)
-        print(f"  [+] Extracted Referral Code: {invite_code}")
+        invite_link, signup_code = get_referral_details(email, password)
+        print(f"  [+] Share Link: {invite_link}")
+        print(f"  [+] Pre-filled Signup Code: {signup_code}")
 
-        new_line = f"{email}:{password}:{invite_code}"
+        new_line = f"{email}:{password}:{invite_link}:{signup_code}"
         updated_lines.append(new_line)
 
         # Save progress incrementally to output file
@@ -147,12 +156,12 @@ def process_file(file_path: str, output_path: str = None, force: bool = False):
 
 HELP_DESCRIPTION = """
 ==============================================================================
-           KaamCash Fast Referral Code Extractor (Pure HTTP Edition)
+    KaamCash Fast Referral Link & Signup Code Extractor (Pure HTTP Edition)
 ==============================================================================
 
 DESCRIPTION:
   Automates login to KaamCash (https://kaamcash.icks.top) for multiple accounts
-  and extracts their unique Referral / Invitation Codes.
+  and extracts BOTH the full share link AND the pre-filled signup referral code.
 
 INPUT FILE FORMAT:
   A plain text file containing one account credential per line:
@@ -164,13 +173,12 @@ INPUT FILE FORMAT:
     user2@gmail.com:MyPassword99
 
 OUTPUT FILE FORMAT:
-  Updates the file in-place (or writes to --output) with referral codes appended:
+  Updates the file in-place (or writes to --output) with referral link and code:
   
-    email_or_phone:password:referral_code
+    email_or_phone:password:referral_link:signup_code
     
   Example Output:
-    user1@gmail.com:SecretPass123:4dAMXOn5
-    user2@gmail.com:MyPassword99:7kPQZb12
+    user1@gmail.com:SecretPass123:https://kaamcash.icks.top/pasia/4dAMXOn5:4dAMXO
 
 USAGE EXAMPLES:
   1. Standard Run (updates accounts.txt in-place):
@@ -209,7 +217,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Force re-extraction for accounts that already have referral codes attached."
+        help="Force re-extraction for accounts that already have referral details attached."
     )
 
     args = parser.parse_args()

@@ -1,13 +1,15 @@
+import os
 import random
 import string
 import requests
+import batch_extract_requests
 from time import sleep
-import os
 
 # ==========================================
 # CONFIGURATION
 # ==========================================
 
+# Generic target endpoint placeholder
 TARGET = "https://kaamcash.icks.top/api/init/98j"
 
 # ==========================================
@@ -20,20 +22,19 @@ def random_name():
 
     def make_word():
         word = random.choice(consonants).upper()
-
         for _ in range(random.randint(2, 4)):
             word += random.choice(vowels + consonants)
-
         return word
 
     return f"{make_word()} {make_word()}"
 
 
-def random_email():
-    name = random_name().replace(" ", "").lower()
+def random_email(name):
+    email_name = name.replace(" ", "").lower()
+    domains = ["@gmail.com", "@hotmail.com", "@outlook.com", "@iitk.ac.in", "@symbiosis.org"]
+    domain = random.choice(domains)
     number = random.randint(100, 9999)
-
-    return f"{name}{number}@example.com"
+    return f"{email_name}{number}{domain}"
 
 
 def random_browser_id():
@@ -53,22 +54,22 @@ def random_password():
 def send_request(referral_code):
 
     name = random_name()
-
-    # Use the same generated name for the email
-    email_name = name.replace(" ", "").lower()
-    email = f"{email_name}{random.randint(100, 9999)}@example.com"
-    filename=referral_code
+    email = random_email(name)
+    filename = referral_code
     browser_id = random_browser_id()
     password = random_password()
-    cred=email+":"+password
-    with open(f"{filename}.txt", "a") as f:
+    
+    cred = f"{email}:{password}\n"
+
+    # Explicit UTF-8 encoding added for cross-platform file writing
+    with open(f"{filename}.txt", "a", encoding="utf-8") as f:
         f.write(cred)
-        f.write("\n")
+
     payload = {
         "purpose": "auth.register",
         "ce": True,
         "payload": {
-            "countryCode": "+91",
+            "countryCode": "+91", 
             "phone": email,
             "name": name,
             "password": password,
@@ -79,7 +80,7 @@ def send_request(referral_code):
     }
 
     headers = {
-        "User-Agent": "Mozilla/5.0",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "application/json",
         "Content-Type": "application/json"
     }
@@ -92,17 +93,15 @@ def send_request(referral_code):
             timeout=15
         )
 
-        try:
-            data = response.json()
-            message = data.get("message", "No message")
-        except ValueError:
-            message = response.text[:200]
-
-        # Only show status code + message
-        print(f"{response.status_code} | {message}")
+        if response.status_code != 200:
+            print(f"❌ [ERROR {response.status_code}] Response Body:")
+            print(response.text)
+        else:
+            print(f"✅ [SUCCESS {response.status_code}] Response Snippet:")
+            print(response.text[:200])
 
     except requests.RequestException as e:
-        print(f"ERROR | {e}")
+        print(f"❌ [NETWORK ERROR] | {e}")
 
 
 # ==========================================
@@ -111,10 +110,10 @@ def send_request(referral_code):
 
 def main():
 
-    referral = input("Referral code:").strip()
+    referral = input("Referral code: ").strip()
 
     try:
-        count = int(input("Number of test requests (Don't exceed max is 9-10.): "))
+        count = int(input("Number of requests: "))
     except ValueError:
         print("Invalid number.")
         return
@@ -122,19 +121,41 @@ def main():
     if count <= 0:
         print("Number must be greater than 0.")
         return
-
+    # STEP 1: Send initial requests
+    print("\n>>> [1/3] Sending initial requests...")
     for i in range(count):
         sleep(random.randint(2, 5))
         send_request(referral)
-    if os.path.exists("referral.txt"):
-        with open("referral.txt", "r") as file:
-            refer=file.readline().strip()
-            invite=random.randint(2,5)
-            for j in range(invite):
-                sleep(random.randint(2, 5))
-                send_request(refer)
+
+
+        # STEP 2: Call batch_extract_requests on saved credentials file
+    print("\n>>> [2/3] Extracting referral links & codes from created accounts...")
+    accounts_file = f"{referral}.txt"
+    if os.path.exists(accounts_file):
+        batch_extract_requests.process_file(accounts_file)
+    else:
+        print(f"Notice: {accounts_file} file not found.")
+        return
+
+    # STEP 3: Read newly extracted referral code from the file & send final requests
+    print("\n>>> [3/3] Sending final requests using extracted code...")
+
+    if os.path.exists(accounts_file ):
+        with open(accounts_file , "r", encoding="utf-8") as file:
+            refer = file.readline().strip()
+            if refer:
+                    parts = refer.split(":")
+                    refer = parts[-1]
+            if refer:
+                invite = random.randint(2, 5)
+                for j in range(invite):
+                    sleep(random.randint(2, 5))
+                    send_request(refer)
+            else:
+                print("Referral code not found in referral.txt")
     else:
         print("Notice: referral.txt file not found, skipping additional requests.")
+
 
 if __name__ == "__main__":
     main()
