@@ -1,6 +1,8 @@
 import random
 import string
 import requests
+from time import sleep
+import os
 
 # ==========================================
 # CONFIGURATION
@@ -55,10 +57,13 @@ def send_request(referral_code):
     # Use the same generated name for the email
     email_name = name.replace(" ", "").lower()
     email = f"{email_name}{random.randint(100, 9999)}@example.com"
-
+    filename=referral_code
     browser_id = random_browser_id()
     password = random_password()
-
+    cred=email+":"+password
+    with open(f"{filename}.txt", "a") as f:
+        f.write(cred)
+        f.write("\n")
     payload = {
         "purpose": "auth.register",
         "ce": True,
@@ -106,7 +111,7 @@ def send_request(referral_code):
 
 def main():
 
-    referral = input("Referral code: ").strip()
+    referral = input("Referral code: Don't exceed max is 9-10.").strip()
 
     try:
         count = int(input("Number of test requests: "))
@@ -119,8 +124,17 @@ def main():
         return
 
     for i in range(count):
+        sleep(random.randint(2, 5))
         send_request(referral)
-
+    if os.path.exists("referral.txt"):
+        with open("referral.txt", "r") as file:
+            refer=file.readline().strip()
+            invite=random.randint(2,5)
+            for j in range(invite):
+                sleep(random.randint(2, 5))
+                send_request(refer)
+    else:
+        print("Notice: referral.txt file not found, skipping additional requests.")
 
 if __name__ == "__main__":
     main()
