@@ -137,25 +137,45 @@ def main():
         print(f"Notice: {accounts_file} file not found.")
         return
 
-    # STEP 3: Read newly extracted referral code from the file & send final requests
-    print("\n>>> [3/3] Sending final requests using extracted code...")
+#     # STEP 3: Read newly extracted referral code from the file & send final requests
+#     print("\n>>> [3/3] Sending final requests using extracted code...")
 
-    if os.path.exists(accounts_file ):
-        with open(accounts_file , "r", encoding="utf-8") as file:
-            refer = file.readline().strip()
-            if refer:
-                    parts = refer.split(":")
-                    refer = parts[-1]
-            if refer:
-                invite = random.randint(2, 5)
-                for j in range(invite):
-                    sleep(random.randint(2, 5))
-                    send_request(refer)
-            else:
-                print("Referral code not found in referral.txt")
+#     if os.path.exists(accounts_file ):
+#         with open(accounts_file , "r", encoding="utf-8") as file:
+#             refer = file.readline().strip()
+#             if refer:
+#                 parts = refer.split(":")
+#                 refer = parts[-1]
+#                 invite = random.randint(2, 5)
+#                 for j in range(invite):
+#                     sleep(random.randint(2, 5))
+#                     send_request(refer)
+#             else:
+#                 print("Referral code not found in referral.txt")
+#     else:
+#         print("Notice: referral.txt file not found, skipping additional requests.")
+
+
+# if __name__ == "__main__":
+#     main()
+
+
+    # STEP 3: Read extracted referral codes line-by-line and send final requests
+    print(f"\n>>> [3/3] Sending final requests using all extracted codes...")
+    if os.path.exists(accounts_file):
+        with open(accounts_file, "r", encoding="utf-8") as file:
+            for line in file:
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split(":")
+                extracted_code = parts[-1]  # Gets the referral code from this line
+                
+                if extracted_code and not extracted_code.startswith("ERROR") and not extracted_code.startswith("LOGIN"):
+                    print(f"[+] Processing extracted code: {extracted_code}")
+                    invite_count = random.randint(2, 5)
+                    for j in range(invite_count):
+                        sleep(random.randint(2, 5))
+                        send_request(extracted_code)
     else:
-        print("Notice: referral.txt file not found, skipping additional requests.")
-
-
-if __name__ == "__main__":
-    main()
+        print(f"[-] Notice: {accounts_file} not found.")
