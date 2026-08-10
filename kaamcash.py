@@ -44,7 +44,7 @@ def random_browser_id():
 
 def random_password():
     chars = string.ascii_letters + string.digits
-    return "Test@" + "".join(random.choice(chars) for _ in range(10))
+    return "Rahul@" + "".join(random.choice(chars) for _ in range(10))
 
 
 # ==========================================
