@@ -156,8 +156,7 @@ def main():
 #         print("Notice: referral.txt file not found, skipping additional requests.")
 
 
-# if __name__ == "__main__":
-#     main()
+
 
 
     # STEP 3: Read extracted referral codes line-by-line and send final requests
@@ -179,3 +178,6 @@ def main():
                         send_request(extracted_code)
     else:
         print(f"[-] Notice: {accounts_file} not found.")
+
+if __name__ == "__main__":
+    main()
