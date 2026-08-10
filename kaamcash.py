@@ -173,6 +173,7 @@ def main():
                 if extracted_code and not extracted_code.startswith("ERROR") and not extracted_code.startswith("LOGIN"):
                     print(f"[+] Processing extracted code: {extracted_code}")
                     invite_count = random.randint(2, 5)
+                    print("Sending invite is"+ invite_count)
                     for j in range(invite_count):
                         sleep(random.randint(2, 5))
                         send_request(extracted_code)
