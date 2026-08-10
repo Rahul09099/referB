@@ -44,8 +44,10 @@ def random_browser_id():
 
 def random_password():
     chars = string.ascii_letters + string.digits
-    return "Rahul@" + "".join(random.choice(chars) for _ in range(10))
+    return "Test@" + "".join(random.choice(chars) for _ in range(10))
 
+def generate_sample_ip():
+    return f"{random.randint(1, 254)}.{random.randint(1, 254)}.{random.randint(1, 254)}.{random.randint(1, 254)}"
 
 # ==========================================
 # SEND TEST REQUEST
@@ -82,7 +84,8 @@ def send_request(referral_code):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "application/json",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Forwarded-For": generate_sample_ip()
     }
 
     try:
@@ -100,8 +103,12 @@ def send_request(referral_code):
             print(f"✅ [SUCCESS {response.status_code}] Response Snippet:")
             print(response.text[:200])
 
+    except requests.exceptions.ProxyError as e:
+        print("❌ PROXY ERROR: Unable to connect to the proxy server.")
+    except requests.exceptions.ConnectTimeout:
+        print("❌ TIMEOUT: Proxy connection timed out.")
     except requests.RequestException as e:
-        print(f"❌ [NETWORK ERROR] | {e}")
+        print("❌ GENERAL REQUEST ERROR:", e)
 
 
 # ==========================================
@@ -137,25 +144,6 @@ def main():
         print(f"Notice: {accounts_file} file not found.")
         return
 
-#     # STEP 3: Read newly extracted referral code from the file & send final requests
-#     print("\n>>> [3/3] Sending final requests using extracted code...")
-
-#     if os.path.exists(accounts_file ):
-#         with open(accounts_file , "r", encoding="utf-8") as file:
-#             refer = file.readline().strip()
-#             if refer:
-#                 parts = refer.split(":")
-#                 refer = parts[-1]
-#                 invite = random.randint(2, 5)
-#                 for j in range(invite):
-#                     sleep(random.randint(2, 5))
-#                     send_request(refer)
-#             else:
-#                 print("Referral code not found in referral.txt")
-#     else:
-#         print("Notice: referral.txt file not found, skipping additional requests.")
-
-
 
 
 
@@ -172,13 +160,16 @@ def main():
                 
                 if extracted_code and not extracted_code.startswith("ERROR") and not extracted_code.startswith("LOGIN"):
                     print(f"[+] Processing extracted code: {extracted_code}")
-                    invite_count = random.randint(2, 5)
-                    print("Sending invite is"+ invite_count)
+                    invite_count = random.randint(1, 4)
+                    print("Sending invite is" ,invite_count)
                     for j in range(invite_count):
-                        sleep(random.randint(2, 5))
+                        sleep(random.randint(5, 10))
                         send_request(extracted_code)
     else:
         print(f"[-] Notice: {accounts_file} not found.")
 
 if __name__ == "__main__":
     main()
+
+
+
