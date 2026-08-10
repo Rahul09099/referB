@@ -111,10 +111,10 @@ def send_request(referral_code):
 
 def main():
 
-    referral = input("Referral code: Don't exceed max is 9-10.").strip()
+    referral = input("Referral code:").strip()
 
     try:
-        count = int(input("Number of test requests: "))
+        count = int(input("Number of test requests (Don't exceed max is 9-10.): "))
     except ValueError:
         print("Invalid number.")
         return
